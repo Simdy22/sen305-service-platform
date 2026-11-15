@@ -1,0 +1,34 @@
+Database vendor: mysql
+Synthetic rows: 12
+
+=== Task 1: requests due before a chosen time ===
+SYNTH-001 Equipment request: due_at=2026-11-16 01:00
+SYNTH-002 Equipment request: due_at=2026-11-17 01:00
+Chosen cutoff: 2026-11-16 07:00
+SQL: SELECT `services_servicerequest`.`id`, `services_servicerequest`.`title`, `services_servicerequest`.`description`, `services_servicerequest`.`category`, `services_servicerequest`.`status`, `services_servicerequest`.`priority`, `services_servicerequest`.`created_at`, `services_servicerequest`.`updated_at`, `services_servicerequest`.`resolved_at`, `services_servicerequest`.`due_at`, `services_servicerequest`.`resolution_summary` FROM `services_servicerequest` WHERE (`services_servicerequest`.`due_at` IS NOT NULL AND `services_servicerequest`.`due_at` < 2026-11-16 07:00:33.050006 AND `services_servicerequest`.`title` LIKE BINARY SYNTH-%)
+  -> SYNTH-006 Equipment request due 2026-11-14 23:00 [RESOLVED]
+  -> SYNTH-011 Software request due 2026-11-15 09:00 [RESOLVED]
+  -> SYNTH-003 Equipment request due 2026-11-15 15:00 [ASSIGNED]
+  -> SYNTH-008 Software request due 2026-11-15 21:00 [OPEN]
+  -> SYNTH-001 Equipment request due 2026-11-16 01:00 [OPEN]
+
+=== Task 3: open/assigned EQUIPMENT ordered by priority, created ===
+queryset.query:
+SELECT `services_servicerequest`.`id`, `services_servicerequest`.`title`, `services_servicerequest`.`description`, `services_servicerequest`.`category`, `services_servicerequest`.`status`, `services_servicerequest`.`priority`, `services_servicerequest`.`created_at`, `services_servicerequest`.`updated_at`, `services_servicerequest`.`resolved_at`, `services_servicerequest`.`due_at`, `services_servicerequest`.`resolution_summary` FROM `services_servicerequest` WHERE (`services_servicerequest`.`category` = EQUIPMENT AND `services_servicerequest`.`status` IN (OPEN, ASSIGNED)) ORDER BY `services_servicerequest`.`priority` DESC, `services_servicerequest`.`created_at` ASC
+
+Results:
+  SYNTH-001 Equipment request | OPEN | priority=4 | created=11-13 19:00
+  SYNTH-002 Equipment request | OPEN | priority=3 | created=11-14 03:00
+  SYNTH-003 Equipment request | ASSIGNED | priority=3 | created=11-14 07:00
+  SYNTH-005 Equipment request | OPEN | priority=2 | created=11-14 19:00
+  SYNTH-004 Equipment request | ASSIGNED | priority=1 | created=11-14 13:00
+
+queryset.explain():
+-> Sort row IDs: services_servicerequest.priority DESC, services_servicerequest.created_at  (cost=2.76 rows=5)
+    -> Index range scan on services_servicerequest using svc_cat_status_idx over (category = 'EQUIPMENT' AND status = 'ASSIGNED') OR (category = 'EQUIPMENT' AND status = 'OPEN'), with index condition: ((services_servicerequest.category = 'EQUIPMENT') and (services_servicerequest.`status` in ('OPEN','ASSIGNED')))  (cost=2.76 rows=5)
+
+
+Indexes on table (from DB introspection):
+  PRIMARY: ['id']
+  svc_cat_status_idx: ['category', 'status']
+  svc_status_due_idx: ['status', 'due_at']
